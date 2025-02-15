@@ -10,9 +10,9 @@ This project implements a simple **Distributed Product Management System** using
 ## 🛠 Setup & Compilation
 
 ### Setup the Project
-# Go to this GitHub repository and clone the project: https://github.com/Akatzz12/Distributed-Product-Management-System
-# cd Distributed Product Management System
-# mkdir bin
+#### Go to this GitHub repository and clone the project: https://github.com/Akatzz12/Distributed-Product-Management-System
+#### cd Distributed Product Management System
+#### mkdir bin
 
 ### Compilation
 
