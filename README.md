@@ -44,7 +44,7 @@ The client interacts with the servers to add, remove, and fetch product details.
 java -cp bin client.Client
 ```
 
-## Note: Run NameServer, Database Server and Client on different terminal.
+### Note: Run NameServer, Database Server and Client on different terminal.
 ---
 
 ## 📝 Supported Commands
