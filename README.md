@@ -55,7 +55,7 @@ Inside the Client program, you can use the following commands:
 ```sh
 PUT electronics Laptop Dell
 ```
-*Adds a Laptop (Dell-XPS-13) to the electronics database.*
+*Adds a Laptop to the electronics database.*
 
 ### Query a product (GET)
 ```sh
