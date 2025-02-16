@@ -3,9 +3,10 @@ package server;
 import java.io.*;
 import java.net.*;
 import java.util.HashMap;
+import java.util.Map;
 
 public class DatabaseServer {
-    private static HashMap<String, String> productMap = new HashMap<>();
+    private static Map<String, Map<String, String>> categoryMap = new HashMap<>();
     private static String category;
 
     public static void main(String[] args) {
@@ -14,7 +15,8 @@ public class DatabaseServer {
             return;
         }
 
-        category = args[0];
+        category = args[0].toLowerCase(); // Normalize category case
+        categoryMap.putIfAbsent(category, new HashMap<>()); // Ensure category exists
 
         try (ServerSocket serverSocket = new ServerSocket(0)) { // Assigns a free port dynamically
             int assignedPort = serverSocket.getLocalPort();
@@ -54,36 +56,54 @@ public class DatabaseServer {
             try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                  PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
-                String request = in.readLine(); // Example: PUT electronics phone "iPhone 15"
+                String request = in.readLine();
                 System.out.println("Received: " + request);
 
-                String[] parts = request.split(" ", 3);
-                if (parts.length >= 2) {
-                    String operation = parts[0];
-                    String product = parts[1];
+                if (request == null || request.trim().isEmpty()) {
+                    out.println("ERROR: Empty request");
+                    return;
+                }
 
-                    switch (operation.toUpperCase()) {
+                String[] parts = request.split(" ", 4); // Adjusted for correct splitting
+                if (parts.length >= 3) {
+                    String operation = parts[0].toUpperCase();
+                    String receivedCategory = parts[1].toLowerCase();
+                    String product = parts[2].toLowerCase();
+
+                    // Ensure category exists
+                    categoryMap.putIfAbsent(receivedCategory, new HashMap<>());
+
+                    switch (operation) {
                         case "PUT":
-                            if (parts.length == 3) {
-                                productMap.put(product, parts[2]);
+                            if (parts.length == 4) {
+                                categoryMap.get(receivedCategory).put(product, parts[3]); // Store product details
                                 out.println("INSERTED " + product);
                             } else {
                                 out.println("ERROR: Missing product details");
                             }
                             break;
+
                         case "GET":
-                            out.println(productMap.getOrDefault(product, "NOT_FOUND"));
+                            if (categoryMap.containsKey(receivedCategory) && categoryMap.get(receivedCategory).containsKey(product)) {
+                                out.println(categoryMap.get(receivedCategory).get(product)); // Return only product details
+                            } else {
+                                out.println("NOT_FOUND");
+                            }
                             break;
+
                         case "DEL":
-                            if (productMap.remove(product) != null) {
+                            if (categoryMap.containsKey(receivedCategory) && categoryMap.get(receivedCategory).remove(product) != null) {
                                 out.println("DELETED " + product);
                             } else {
                                 out.println("NOT_FOUND");
                             }
                             break;
+
                         default:
                             out.println("ERROR: Invalid command");
                     }
+                } else {
+                    out.println("ERROR: Invalid request format");
                 }
             } catch (IOException e) {
                 e.printStackTrace();

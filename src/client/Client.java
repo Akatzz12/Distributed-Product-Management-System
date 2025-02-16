@@ -13,22 +13,34 @@ public class Client {
 
         while (true) {
             System.out.print("Enter command (PUT <category> <product> <details> | GET <category> <product> | DEL <category> <product> | EXIT): ");
-            String command = scanner.nextLine();
+            String command = scanner.nextLine().trim();
             
             if (command.equalsIgnoreCase("EXIT")) {
                 System.out.println("Exiting client...");
                 break;
             }
 
-            String[] parts = command.split(" ", 3);
-            if (parts.length < 2) {
+            String[] parts = command.split(" ", 4); 
+
+            if (parts.length < 3) {
                 System.out.println("Invalid command format. Try again.");
                 continue;
             }
 
-            String operation = parts[0];
+            String operation = parts[0].toUpperCase();
             String category = parts[1];
-            String product = (parts.length > 2) ? parts[2] : null;
+            String product = parts[2];
+            String details = (parts.length == 4) ? parts[3] : null; 
+
+            // Validate commands before contacting NameServer
+            if (operation.equals("PUT") && details == null) {
+                System.out.println("Error: PUT command requires product details.");
+                continue;
+            }
+            if ((operation.equals("GET") || operation.equals("DEL")) && details != null) {
+                System.out.println("Error: GET and DEL commands should not have product details.");
+                continue;
+            }
 
             // Look up DatabaseServer from NameServer
             String serverAddress = lookupServer(category);
@@ -45,7 +57,14 @@ public class Client {
             }
 
             String dbServerHost = addressParts[0];
-            int dbServerPort = Integer.parseInt(addressParts[1]);
+            int dbServerPort;
+
+            try {
+                dbServerPort = Integer.parseInt(addressParts[1]);
+            } catch (NumberFormatException e) {
+                System.out.println("Error: Invalid port number received from NameServer.");
+                continue;
+            }
 
             // Send request to the DatabaseServer
             String response = communicateWithDatabaseServer(dbServerHost, dbServerPort, command);
@@ -60,7 +79,12 @@ public class Client {
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
             out.println("LOOKUP " + category);
-            return in.readLine();
+            String response = in.readLine();
+
+            if (response == null || response.trim().isEmpty()) {
+                return "NOT_FOUND";
+            }
+            return response;
         } catch (IOException e) {
             System.out.println("Error connecting to NameServer: " + e.getMessage());
             return null;
