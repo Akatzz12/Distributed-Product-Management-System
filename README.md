@@ -5,6 +5,9 @@ This project implements a simple **Distributed Product Management System** using
 - Multiple **Database Servers** store product data dynamically.
 - A **Client** interacts with the system to insert, delete, and query products.
 
+## Working Architecture
+![Architecture Diagram](architecture.png)
+
 ---
 
 ## 🛠 Setup & Compilation
