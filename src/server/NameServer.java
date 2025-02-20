@@ -5,7 +5,7 @@ import java.net.*;
 import java.util.HashMap;
 
 public class NameServer {
-    private static final int PORT = 6010; // Port for NameServer
+    private static final int PORT = 6010;
     private static HashMap<String, String> categoryMap = new HashMap<>();
 
     public static void main(String[] args) {
@@ -21,9 +21,13 @@ public class NameServer {
         }
     }
 
-    public static void registerCategory(String category, String serverAddress) {
+    public static synchronized String registerCategory(String category, String serverAddress) {
+        if (categoryMap.containsKey(category)) {
+            return "ERROR: Category '" + category + "' is already registered!";
+        }
         categoryMap.put(category, serverAddress);
         System.out.println("Registered: " + category + " -> " + serverAddress);
+        return "SUCCESS";
     }
 
     public static String getServer(String category) {
@@ -52,8 +56,8 @@ class NameServerHandler extends Thread {
 
                 if (command.equalsIgnoreCase("REGISTER") && parts.length == 3) {
                     String serverAddress = parts[2];
-                    NameServer.registerCategory(category, serverAddress);
-                    out.println("SUCCESS");
+                    String response = NameServer.registerCategory(category, serverAddress);
+                    out.println(response);
                 } else if (command.equalsIgnoreCase("LOOKUP")) {
                     String serverAddress = NameServer.getServer(category);
                     out.println((serverAddress != null) ? serverAddress : "NOT_FOUND");

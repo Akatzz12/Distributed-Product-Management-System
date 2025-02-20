@@ -15,15 +15,19 @@ public class DatabaseServer {
             return;
         }
 
-        category = args[0].toLowerCase(); // Normalize category case
-        categoryMap.putIfAbsent(category, new HashMap<>()); // Ensure category exists
+        category = args[0].toLowerCase();
+        categoryMap.putIfAbsent(category, new HashMap<>());
 
-        try (ServerSocket serverSocket = new ServerSocket(0)) { // Assigns a free port dynamically
+        try (ServerSocket serverSocket = new ServerSocket(0)) {
             int assignedPort = serverSocket.getLocalPort();
             System.out.println(category + " Server running on port " + assignedPort);
 
-            // Register this database server in the NameServer
-            registerWithNameServer(category, assignedPort);
+            // Register with NameServer
+            String registrationResponse = registerWithNameServer(category, assignedPort);
+            if (registrationResponse.contains("ERROR")) {
+                System.out.println(registrationResponse);
+                return;
+            }
 
             while (true) {
                 Socket socket = serverSocket.accept();
@@ -34,14 +38,15 @@ public class DatabaseServer {
         }
     }
 
-    private static void registerWithNameServer(String category, int port) {
-        try (Socket socket = new Socket("localhost", 6010); // NameServer is on port 6010
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+    private static String registerWithNameServer(String category, int port) {
+        try (Socket socket = new Socket("localhost", 6010);
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
             out.println("REGISTER " + category + " localhost:" + port);
-            System.out.println("Registered " + category + " with NameServer.");
+            return in.readLine();
         } catch (IOException e) {
-            e.printStackTrace();
+            return "ERROR: Unable to register with NameServer.";
         }
     }
 
@@ -64,20 +69,28 @@ public class DatabaseServer {
                     return;
                 }
 
-                String[] parts = request.split(" ", 4); // Adjusted for correct splitting
+                String[] parts = request.split(" ", 4);
                 if (parts.length >= 3) {
                     String operation = parts[0].toUpperCase();
                     String receivedCategory = parts[1].toLowerCase();
                     String product = parts[2].toLowerCase();
 
-                    // Ensure category exists
                     categoryMap.putIfAbsent(receivedCategory, new HashMap<>());
 
                     switch (operation) {
                         case "PUT":
                             if (parts.length == 4) {
-                                categoryMap.get(receivedCategory).put(product, parts[3]); // Store product details
-                                out.println("INSERTED " + product);
+                                String details = parts[3];
+
+                                // Check if the product already exists
+                                if (categoryMap.get(receivedCategory).containsKey(product)) {
+                                    out.println("ERROR: Product '" + product + "' already exists.");
+                                } else if (categoryMap.get(receivedCategory).containsValue(details)) {
+                                    out.println("ERROR: Product with same details already exists.");
+                                } else {
+                                    categoryMap.get(receivedCategory).put(product, details);
+                                    out.println("INSERTED " + product);
+                                }
                             } else {
                                 out.println("ERROR: Missing product details");
                             }
@@ -85,7 +98,7 @@ public class DatabaseServer {
 
                         case "GET":
                             if (categoryMap.containsKey(receivedCategory) && categoryMap.get(receivedCategory).containsKey(product)) {
-                                out.println(categoryMap.get(receivedCategory).get(product)); // Return only product details
+                                out.println(categoryMap.get(receivedCategory).get(product));
                             } else {
                                 out.println("NOT_FOUND");
                             }
